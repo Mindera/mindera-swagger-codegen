@@ -1,0 +1,1613 @@
+swagger: '2.0'
+info:
+  title: TEST API
+  description: TEST API to test this generator
+  version: "1.0.0"
+basePath: /v1
+produces:
+  - application/json
+paths:
+  /items:
+    get:
+      operationId: getItemsSummaries
+      summary: Get Items Summaries
+      description: |
+          Get a summary of all Items available to the logged-in account.
+      parameters:
+        - name: page
+          description: Page to be returned, zero-based page index.
+          in: query
+          required: false
+          type: integer
+          format: int32
+          default: 0
+        - name: size
+          description: Number of items per page.
+          in: query
+          required: false
+          type: integer
+          format: int32
+          default: 60
+        - name: sort
+          description: The order to sort the Items by.
+          in: query
+          required: false
+          type: string
+          enum:
+            - NAME
+          default: NAME
+        - name: sortDirection
+          description: The order direction of the sort parameter.
+          in: query
+          required: false
+          type: string
+          enum:
+            - ASC
+            - DESC
+          default: ASC
+        - name: filterBy
+          description: Filter Item options
+          in: query
+          required: false
+          type: string
+          enum:
+            - DOC
+            - LAST_60_DAYS
+        - name: filterValue
+          description: filter value
+          in: query
+          required: false
+          type: string
+      tags:
+        - Items
+      responses:
+        200:
+          description: An array of Item summaries
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/ItemSummary'
+          headers:
+            X-Result-Count:
+              description: Number of provided Item summaries
+              type: integer
+              format: int32
+            X-Total-Count:
+              description: Total number of Item summaries
+              type: integer
+              format: int32
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+    post:
+      operationId: createItem
+      summary: Create Item
+      tags:
+        - Items
+      consumes:
+        - application/json
+      parameters:
+        - name: item
+          description: New item information.
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/NewItem'
+      responses:
+        201:
+          description: Item created successfully
+          schema:
+            $ref: '#/definitions/Item'
+        400:
+          description: Item required data is missing
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+  /items/participant:
+    get:
+      operationId: getParticipantItemSummaries
+      summary: Get Participant Item Summaries
+      parameters:
+        - name: page
+          description: Page to be returned, zero-based page index.
+          in: query
+          required: false
+          type: integer
+          format: int32
+          default: 0
+        - name: size
+          description: Number of items of the page.
+          in: query
+          required: false
+          type: integer
+          format: int32
+          default: 60
+        - name: sort
+          description: The order to sort the Items by.
+          in: query
+          required: false
+          type: string
+          enum:
+            - NAME
+            - DUE_DATE
+          default: DUE_DATE
+        - name: sortDirection
+          description: The order direction of the sort parameter.
+          in: query
+          required: false
+          type: string
+          enum:
+            - ASC
+            - DESC
+          default: ASC
+      tags:
+        - Items
+      responses:
+        200:
+          description: An array of participant Item summaries
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/ParticipantItemSummary'
+          headers:
+            X-Result-Count:
+              description: Number of provided Item summaries
+              type: integer
+              format: int32
+            X-Total-Count:
+              description: Total number of Item summaries
+              type: integer
+              format: int32
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+  /items/{itemId}/participant:
+    get:
+      operationId: getParticipantItem
+      summary: Get Participant Item
+      parameters:
+        - name: itemId
+          type: string
+          description: item to fetch
+          in: path
+          required: true
+      tags:
+        - Items
+      responses:
+        200:
+          description: Successful operation
+          schema:
+            $ref: '#/definitions/ParticipantItem'
+        404:
+          description: Item not found
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      operationId: updateParticipantItem
+      summary: Update Participant Item
+      tags:
+        - Items
+      consumes:
+        - application/json
+      parameters:
+        - name: itemId
+          type: string
+          description: Item to update
+          in: path
+          required: true
+        - name: itemUpdate
+          description: Item update information.
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/ParticipantItemUpdate'
+      responses:
+        200:
+          description: Item updated successfully
+          schema:
+            $ref: '#/definitions/ParticipantItem'
+        404:
+          description: Item not found
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+  /items/{itemId}:
+    get:
+      operationId: getItem
+      summary: Get Item
+      parameters:
+        - name: itemId
+          type: string
+          description: item to fetch
+          in: path
+          required: true
+      tags:
+        - Items
+      responses:
+        200:
+          description: Successful operation
+          schema:
+            $ref: '#/definitions/Item'
+        404:
+          description: Item not found
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      operationId: updateItem
+      summary: Update Item
+      tags:
+        - Items
+      consumes:
+        - application/json
+      parameters:
+        - name: itemId
+          type: string
+          description: Item to update
+          in: path
+          required: true
+        - name: sendInvites
+          type: boolean
+          default: false
+          description: Send invites to Item contacts
+          in: query
+          required: false
+        - name: itemUpdate
+          description: Item update information.
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/ItemUpdate'
+      responses:
+        200:
+          description: Item updated successfully
+          schema:
+            $ref: '#/definitions/Item'
+        404:
+          description: Item not found
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+  /items/{itemId}/notices:
+    get:
+      operationId: getItemNotices
+      summary: Get Item notices
+      parameters:
+        - name: itemId
+          type: string
+          description: item to fetch
+          in: path
+          required: true
+      tags:
+        - Items
+      responses:
+        200:
+          description: An array of item notices
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Notice'
+        404:
+          description: Item not found
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      operationId: updateItemNotices
+      summary: Update Item Notices
+      parameters:
+        - name: itemId
+          type: string
+          description: Item identifier
+          in: path
+          required: true
+        - name: noticesList
+          description: List of notice names to be associated with this item
+          in: body
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+              description: Notice names
+      tags:
+        - Items
+      responses:
+        204:
+          description: Item notices updated successfully
+        404:
+          description: Item not found
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+  /items/{itemId}/forms:
+    get:
+      operationId: getItemForms
+      summary: Get Item Forms
+      parameters:
+        - name: itemId
+          type: string
+          description: Item identifier
+          in: path
+          required: true
+      tags:
+        - Items
+      responses:
+        200:
+          description: Successful operation
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Form'
+        404:
+          description: Item not found
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      operationId: updateItemForms
+      summary: Update Item Forms
+      parameters:
+        - name: itemId
+          type: string
+          description: Item identifier
+          in: path
+          required: true
+        - name: formsList
+          description: List of forms to be associated with this item
+          in: body
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+              description: Form names
+      tags:
+        - Items
+      responses:
+        204:
+          description: Item forms updated successfully
+        404:
+          description: Item not found
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+  /items/{itemId}/contacts:
+    get:
+      operationId: getItemContacts
+      summary: Item contacts
+      parameters:
+        - name: itemId
+          type: string
+          description: item to fetch
+          in: path
+          required: true
+        - name: sort
+          description: The order to sort the contacts by.
+          in: query
+          required: false
+          type: string
+          enum:
+            - LAST_NAME
+            - CREATED_DATE
+          default: CREATED_DATE
+        - name: sortDirection
+          description: The order direction of the sort parameter.
+          in: query
+          required: false
+          type: string
+          enum:
+            - ASC
+            - DESC
+          default: ASC
+      tags:
+        - Items
+      responses:
+        200:
+          description: Successful operation
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Contact'
+        403:
+          description: Forbidden Access
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      operationId: updateItemContacts
+      summary: Update Item Contacts
+      parameters:
+        - name: itemId
+          type: string
+          description: Item identifier
+          in: path
+          required: true
+        - name: contactsList
+          description: List of contacts to be associated with this item
+          in: body
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+              description: contacts identifiers
+      tags:
+        - Items
+      responses:
+        204:
+          description: Item contacts updated successfully
+        404:
+          description: Item not found
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+  /items/{itemId}/files/packages:
+    get:
+      operationId: getItemFileGroup
+      summary: Get File Group for given Item
+      parameters:
+        - name: itemId
+          type: string
+          description: Item identifier
+          in: path
+          required: true
+      tags:
+        - Files
+      responses:
+        200:
+          description: Successful operation
+          schema:
+            $ref: '#/definitions/FileGroup'
+        403:
+          description: Forbidden Access
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      operationId: updateItemFileGroup
+      summary: Update File Group for given Item
+      parameters:
+        - name: itemId
+          type: string
+          description: Item identifier
+          in: path
+          required: true
+        - name: fileGroupUpdate
+          description: File Package update information.
+          in: body
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+              description: File Package names
+      tags:
+        - Files
+      responses:
+        204:
+          description: Successful operation
+        403:
+          description: Forbidden Access
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+  /items/{itemId}/contacts/{contactId}:
+    delete:
+      operationId: deleteItemContact
+      summary: Delete a File
+      parameters:
+        - name: itemId
+          type: string
+          description: Item identifier
+          in: path
+          required: true
+        - name: contactId
+          type: string
+          description: Contact identifier
+          in: path
+          required: true
+      tags:
+        - Items
+      responses:
+        204:
+          description: Successful operation
+        403:
+          description: Forbidden Access
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+  /files/categories:
+    get:
+      operationId: getFileCategories
+      summary: Get File Categories
+      parameters:
+        - name: itemIds
+          description: Item Identifiers
+          in: query
+          required: true
+          type: array
+          items:
+            type: string
+      tags:
+        - Files
+      responses:
+        200:
+          description: Successful operation
+          schema:
+            type: array
+            items:
+              type: string
+              description: Category names
+        403:
+          description: Forbidden Access
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+  /files:
+    get:
+      operationId: getFiles
+      summary: List Files
+      parameters:
+        - name: itemIds
+          type: array
+          description: Filter by Item Identifiers
+          in: query
+          required: false
+          items:
+            type: string
+        - name: categories
+          type: array
+          description: Filter by file category names
+          in: query
+          required: false
+          items:
+            type: string
+      tags:
+        - Files
+      responses:
+        200:
+          description: An array of item files
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/File'
+        403:
+          description: Forbidden Access
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      operationId: updateFiles
+      summary: Update Files
+      consumes:
+        - application/json
+      parameters:
+        - name: fileUpdates
+          description: File Update
+          in: body
+          required: true
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/FileUpdate'
+      tags:
+        - Files
+      responses:
+        200:
+          description: Successful operation
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/File'
+        400:
+          description: Invalid category Id
+          schema:
+            $ref: '#/definitions/Error'
+        403:
+          description: Forbidden Access
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+    post:
+      operationId: uploadFile
+      summary: Upload a File
+      consumes:
+        - multipart/form-data
+      parameters:
+        - name: file
+          in: formData
+          description: The File to upload
+          type: file
+          required: true
+        - name: itemId
+          type: string
+          description: Item Identifier
+          in: query
+          required: false
+        - name: category
+          type: string
+          description: File Category
+          in: query
+          required: false
+      tags:
+        - Files
+      responses:
+        200:
+          description: Successful operation
+          schema:
+            $ref: '#/definitions/File'
+        400:
+          description: Invalid category Id
+          schema:
+            $ref: '#/definitions/Error'
+        403:
+          description: Forbidden Access
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+      x-returnTypeOverride:
+        type: WebAsyncTask<ResponseEntity<File>>
+        import: org.springframework.web.context.request.async.WebAsyncTask
+    delete:
+      operationId: deleteFiles
+      summary: Delete files
+      consumes:
+        - application/json
+      parameters:
+        - name: comment
+          type: string
+          description: comments about the file
+          in: query
+          required: false
+        - name: fileDeletes
+          description: File Delete
+          in: body
+          required: true
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/FileDelete'
+      tags:
+        - Files
+      responses:
+        204:
+          description: Successful operation
+        400:
+          description: Invalid file Id
+          schema:
+            $ref: '#/definitions/Error'
+        403:
+          description: Forbidden Access
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+  /files/{fileId}:
+    get:
+      operationId: downloadFile
+      summary: Download a File
+      produces:
+        - application/octet-stream
+      parameters:
+        - name: fileId
+          type: string
+          description: File Identifier
+          in: path
+          required: true
+      tags:
+        - Files
+      responses:
+        200:
+          description: Successful operation
+          schema:
+            type: file
+        403:
+          description: Forbidden Access
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      operationId: updateFile
+      summary: Update a File
+      consumes:
+        - application/json
+      parameters:
+        - name: fileId
+          type: string
+          description: File Identifier
+          in: path
+          required: true
+        - name: file
+          description: File Update
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/FileUpdate'
+      tags:
+        - Files
+      responses:
+        200:
+          description: Successful operation
+          schema:
+            $ref: '#/definitions/File'
+        400:
+          description: Invalid category Id
+          schema:
+            $ref: '#/definitions/Error'
+        403:
+          description: Forbidden Access
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+    delete:
+      operationId: deleteFile
+      summary: Delete a File
+      parameters:
+        - name: fileId
+          type: string
+          description: File identifier
+          in: path
+          required: true
+        - name: file
+          description: File Delete
+          in: body
+          required: false
+          schema:
+            $ref: '#/definitions/FileDelete'
+      tags:
+        - Files
+      responses:
+        204:
+          description: Successful operation
+        403:
+          description: Forbidden Access
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+  /forms/{itemId}/available:
+    get:
+      operationId: getAvailableForms
+      summary: Available forms to be associated with an item
+      parameters:
+        - name: itemId
+          type: string
+          description: Item the forms can be associated to
+          in: path
+          required: true
+      tags:
+        - Items
+      responses:
+        200:
+          description: An array of form names
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Form'
+        403:
+          description: Forbidden Access
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+  /notices/{itemId}/available:
+    get:
+      operationId: getAvailableNotices
+      summary: Available notices
+      parameters:
+        - name: itemId
+          type: string
+          description: Item the notices can be associated to
+          in: path
+          required: true
+      tags:
+        - Items
+      responses:
+        200:
+          description: An array of notice names
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Notice'
+        403:
+          description: Forbidden Access
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+  /alerts:
+    get:
+      operationId: getAlerts
+      summary: System Alert and AccountAlerts
+      tags:
+        - Alerts
+      responses:
+        200:
+          description: System Alert and AccountAlerts
+          schema:
+            $ref: '#/definitions/Alert'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+  /alerts/system:
+    post:
+      operationId: createSystemAlert
+      summary: Create System alert
+      tags:
+        - Alerts
+      consumes:
+        - application/json
+      parameters:
+        - name: systemAlert
+          description: New System alert
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/NewSystemAlert'
+      responses:
+        201:
+          description: System alert created successfully
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+  /contacts:
+    get:
+      operationId: getContacts
+      summary: Get Customer Contacts
+      tags:
+        - Contacts
+      parameters:
+        - name: name
+          type: string
+          description: Contact name registed in the contact information
+          in: query
+          required: false
+        - name: page
+          description: Page to be returned, zero-based page index.
+          in: query
+          required: false
+          type: integer
+          format: int32
+          default: 0
+        - name: size
+          description: Number of items per page.
+          in: query
+          required: false
+          type: integer
+          format: int32
+          default: 60
+        - name: filterBy
+          description: Filter Contacts options
+          in: query
+          required: false
+          type: string
+          enum:
+            - COMPANY_ID
+        - name: filterValue
+          description: filter value
+          in: query
+          required: false
+          type: string
+        - name: sort
+          description: The order to sort the contacts by.
+          in: query
+          required: false
+          type: string
+          enum:
+            - LAST_NAME
+            - COMPANY
+            - CREATED_DATE
+          default: CREATED_DATE
+        - name: sortDirection
+          description: The order direction of the sort parameter.
+          in: query
+          required: false
+          type: string
+          enum:
+            - ASC
+            - DESC
+          default: ASC
+      responses:
+        200:
+          description: An array of Contacts
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Contact'
+          headers:
+            X-Result-Count:
+              description: Number of provided Contacts
+              type: integer
+              format: int32
+            X-Total-Count:
+              description: Total number of Contacts
+              type: integer
+              format: int32
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+  /enterprises:
+    get:
+      operationId: getEnterprisesSummaries
+      summary: Get Customer Enterprises Summaries
+      tags:
+        - Enterprises
+      parameters:
+        - name: page
+          description: Page to be returned, zero-based page index.
+          in: query
+          required: false
+          type: integer
+          format: int32
+          default: 0
+        - name: size
+          description: Number of items of the page.
+          in: query
+          required: false
+          type: integer
+          format: int32
+          default: 60
+      responses:
+        200:
+          description: An array of Enterprises Summaries
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/EnterpriseSummary'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+    post:
+      operationId: createEnterprise
+      summary: Create new enterprise
+      tags:
+        - Enterprises
+      consumes:
+        - application/json
+      parameters:
+        - name: enterprise
+          description: New Enterprise Information
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/NewEnterprise'
+      responses:
+        201:
+          description: Enterprise created successfully
+        400:
+          description: Enterprise required data is missing
+          schema:
+            $ref: '#/definitions/Error'
+        409:
+          description: Enterprise name already exists
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+  /enterprises/{enterpriseId}/contacts:
+    post:
+      operationId: createContact
+      summary: Create new contact for the provided enterprise
+      tags:
+        - Enterprises
+      consumes:
+        - application/json
+      parameters:
+        - name: enterpriseId
+          type: string
+          description: Id of the enterprise of the new contact
+          in: path
+          required: true
+        - name: contact
+          description: New Contact Information
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/NewContact'
+      responses:
+        201:
+          description: Contact created successfully
+          schema:
+            $ref: '#/definitions/Contact'
+        400:
+          description: Contact required data is missing
+          schema:
+            $ref: '#/definitions/Error'
+        404:
+          description: Enterprise not found
+          schema:
+            $ref: '#/definitions/Error'
+        409:
+          description: Contact email already exists
+          schema:
+            $ref: '#/definitions/Error'
+        500:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+definitions:
+  Status:
+    type: string
+    enum: &Status
+      - OPEN
+      - CLOSED
+      - HOLD
+
+  NewItem:
+    type: object
+    properties:
+      name:
+        type: string
+        description: Name of the item
+      startDate:
+        type: string
+        format: date-time
+        description: Item start date
+      dueDate:
+        type: string
+        format: date
+        description: Due date for this Item
+      contacts:
+        type: array
+        items:
+          type: string
+          description: Contact identifiers
+      notices:
+        type: array
+        items:
+          type: string
+          description: Notice names
+      forms:
+        type: array
+        items:
+          type: string
+          description: Form names
+  ItemUpdate:
+    allOf:
+      - $ref: '#/definitions/NewItem'
+      - type: object
+        properties:
+          status:
+            type: string
+            description: Status
+            enum: *Status
+
+  ItemSummary:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Unique id of Item
+      status:
+        type: string
+        description: Status
+        enum: *Status
+      uniqueReference:
+        type: string
+        description: Unique reference
+      name:
+        type: string
+        description: Name of Item
+      template:
+        type: string
+        description: Name of the template used for this Item
+      hasForms:
+        type: boolean
+        description: True if this Item contains forms
+      owner:
+        type: string
+        description: Item Owner name
+      dateAdded:
+        type: string
+        format: date
+        description: Date this Item was added
+      startDate:
+        type: string
+        format: date-time
+        description: item start date
+      dueDate:
+        type: string
+        format: date
+        description: Due date for this Item
+      numFiles:
+        type: integer
+        format: int32
+        description: Number of Files in this Item
+      lastUploadDate:
+        type: string
+        format: date
+        description: Date of the last upload of any file of this Item
+      numNotified:
+        type: integer
+        format: int32
+        description: Number of notified contacts for this Item
+  Item:
+    allOf:
+      - $ref: '#/definitions/ItemSummary'
+      - type: object
+        properties:
+          lastUploadFile:
+            description: Last upload file of this Item
+            $ref: '#/definitions/File'
+          lastDownloadFile:
+            description: Last download file of this Item
+            $ref: '#/definitions/File'
+          contacts:
+            type: array
+            items:
+              $ref: '#/definitions/Contact'
+          fileCategories:
+            type: array
+            description: File categories
+            items:
+              $ref: '#/definitions/FileCategory'
+          fileGroup:
+            type: array
+            description: File packages
+            items:
+              type: string
+          forms:
+            type: array
+            description: Forms
+            items:
+              $ref: '#/definitions/Form'
+          notices:
+            type: array
+            items:
+              $ref: '#/definitions/Notice'
+  ParticipantItemSummary:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Unique id of Item
+      name:
+        type: string
+        description: Name of Item
+      action:
+        type: boolean
+        description: Flag to indicate if this Item needs action or not
+      owner:
+        type: string
+        description: Customer name that owns this Item
+      primaryContact:
+        description: Primary contact for this Item
+        $ref: '#/definitions/ContactSummary'
+      dueDate:
+        type: string
+        description: Due date for this Item
+        format: date
+      status:
+        type: string
+        description: Status
+        enum:
+          - OPEN
+          - HOLD
+  ParticipantItem:
+      allOf:
+        - $ref: '#/definitions/ParticipantItemSummary'
+        - type: object
+          properties:
+            startDate:
+              type: string
+              format: date-time
+              description: Item start date
+            numFiles:
+              type: integer
+              format: int32
+              description: Number of Files in this Item that are available to the participant
+            lastUploadFile:
+              description: Last upload file of this Item available to the participant
+              $ref: '#/definitions/File'
+            lastDownloadFile:
+              description: Last download file of this Item available to the participant
+              $ref: '#/definitions/File'
+            fileCategories:
+              type: array
+              items:
+                $ref: '#/definitions/FileCategory'
+            forms:
+              type: array
+              description: Forms
+              items:
+                $ref: '#/definitions/Form'
+            notices:
+              type: array
+              items:
+                $ref: '#/definitions/Notice'
+  ParticipantItemUpdate:
+    type: object
+    properties:
+      action:
+        type: boolean
+        description: Flag to indicate if this Item needs action or not
+  ContactSummary:
+    type: object
+    properties:
+      firstName:
+        type: string
+        description: First name of the account
+      lastName:
+        type: string
+        description: Last name of the account
+      email:
+        type: string
+        description: Email address of the account
+      isPrimaryContact:
+        type: boolean
+        default: false
+        description: Flag indicating if is a primary contact from the enterprise it belongs
+      enterprise:
+        description: Enterprise summary information of this contact
+        $ref: '#/definitions/EnterpriseSummary'
+  Contact:
+    allOf:
+      - $ref: '#/definitions/ContactSummary'
+      - type: object
+        properties:
+          id:
+            type: string
+            description: Contact ID
+          type:
+            type: string
+            description: Contact type
+            enum:
+              - SITE
+              - BILLING
+          titlePosition:
+            type: string
+            description: Title/Position of this contact in the enterprise
+          phoneNumber:
+            type: string
+            description: Phone Number
+          lastDownloadDate:
+            type: string
+            format: date-time
+            description: last download date
+          accessStatus:
+            type: string
+            description: Access status of this contact
+            enum:
+            - ONLINE
+  NewContact:
+    type: object
+    properties:
+      firstName:
+        type: string
+        description: First name
+      lastName:
+        type: string
+        description: Last name
+      contactType:
+        type: string
+        description: Contact type
+        enum:
+        - SITE
+        - BILLING
+      titlePosition:
+        type: string
+        description: Title/Position of this contact in the enterprise
+      address:
+        description: Address information
+        $ref: '#/definitions/Address'
+      socialProfiles:
+        description: Social profiles
+        type: array
+        $ref: '#/definitions/ContactSocialProfile'
+      enterpriseId:
+        type: string
+        description: Enterprise id
+  ContactSocialProfile:
+    type: object
+    properties:
+      socialProfile:
+        type: string
+        description: Social profiles options
+        enum:
+        - TWITTER
+        - GOOGLEPLUS
+        - HI5
+        - SLACK
+      url:
+        type: string
+        description: Social profile url
+  Address:
+    type: object
+    properties:
+      address1:
+        type: string
+        description: Address information
+      city:
+        type: string
+        description: City
+      postalCode:
+        type: string
+        description: Postal code
+      nation:
+        type: string
+        description: Nation
+      latitude:
+        type: string
+        description: Latitude
+      longitude:
+        type: string
+        description: Longitude
+  EnterpriseSummary:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Enterprise id
+      name:
+        type: string
+        description: Name of Enterprise
+      numOfContacts:
+        type: integer
+        format: int32
+        description: Number of contacts that are linked with the enterprise
+    discriminator: id
+    required:
+      - id
+      - name
+  Enterprise:
+    allOf:
+      - $ref: '#/definitions/EnterpriseSummary'
+      - type: object
+        properties:
+          phoneNumber:
+            type: string
+            description: Enterprise phone number
+          faxNumber:
+            type: string
+            description: Fax Number
+          email:
+            type: string
+            description: Email address
+          city:
+            type: string
+            description: City
+          nation:
+            type: string
+            description: Nation
+          primaryContact:
+            description: Primary contact
+            $ref: '#/definitions/ContactSummary'
+  NewEnterprise:
+    type: object
+    properties:
+      name:
+        type: string
+        description: Enterprise name
+      phoneNumber:
+        type: string
+        description: Phone Number
+      email:
+        type: string
+        description: Email address
+      city:
+        type: string
+        description: City
+      nation:
+        type: string
+        description: Nation
+  Notice:
+    type: object
+    properties:
+      name:
+        type: string
+        description: Notice name
+      description:
+        type: string
+        description: Notice name
+      type:
+        type: string
+        description: Last name
+        enum:
+          - GENERAL
+          - GALLERY
+  Form:
+    type: object
+    properties:
+      name:
+        type: string
+        description: Form name
+      description:
+        type: string
+        description: Form description
+  File:
+    type: object
+    properties:
+      id:
+        type: string
+        description: File identifier
+      name:
+        type: string
+        description: Name of the file
+      url:
+        type: string
+        description: URL to download the file
+      contentType:
+        type: string
+        description: Content type
+      fileSize:
+        type: integer
+        format: int64
+        description: File size in bytes
+      category:
+        type: string
+        description: Category name
+      permissions:
+        description: file permissions
+        type: array
+        items:
+          type: string
+          enum:
+            - READ
+            - DELETE
+      uploadDate:
+        type: string
+        format: date-time
+        description: Upload date
+  FileUpdate:
+    type: object
+    properties:
+      id:
+        type: string
+        description: File Identifier
+      itemId:
+        type: string
+        description: Item Identifier. After being set it cannot be changed.
+      name:
+        type: string
+        description: Name of the file
+      category:
+        type: string
+        description: Category name
+  FileDelete:
+    type: object
+    properties:
+      id:
+        type: string
+        description: File Identifier
+      comment:
+        type: string
+        description: comments about the file
+      reason:
+        type: string
+        description: reason to delete this file
+        enum:
+          - DEFAULT
+          - OTHER
+  FileGroup:
+    type: object
+    properties:
+      attached:
+        type: array
+        description: File Group names currently being used by Item
+        items:
+          type: string
+          description: File Package name
+      available:
+        type: array
+        description: File Group names available to Item
+        items:
+          type: string
+          description: File Package name
+  FileCategory:
+    type: object
+    properties:
+      name:
+        type: string
+        description: File Category name
+      count:
+        type: integer
+        format: int64
+        description: Number of Files
+  Alert:
+    type: object
+    properties:
+      systemAlert:
+        type: string
+        description: System alert message
+      accountAlert:
+        type: string
+        description: Account alert message
+  NewSystemAlert:
+    type: object
+    properties:
+      text:
+        type: string
+        description: Alert text
+      dueDate:
+        type: string
+        format: date-time
+        description: Due date of this alert
+  Error:
+    type: object
+    properties:
+      status:
+        type: integer
+        format: int32
+      code:
+        type: integer
+        format: int32
+      message:
+        type: string

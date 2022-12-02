@@ -1,0 +1,82 @@
+package {{package}};
+
+import {{invokerPackage}}.ApiException;
+import {{invokerPackage}}.ApiClient;
+import {{invokerPackage}}.Pair;
+
+{{#imports}}import {{import}};
+{{/imports}}
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import play.Logger;
+import play.Logger.ALogger;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletionStage;
+
+{{>generatedAnnotation}}
+{{#operations}}
+@Singleton
+public class {{classname}} {
+
+    private static final ALogger logger = Logger.of({{classname}}.class);
+
+    private ApiClient apiClient;
+
+    @Inject
+    public {{classname}}(ApiClient apiClient) {
+        this.apiClient = apiClient;
+    }
+
+    {{#operation}}
+    /**
+     * {{summary}}
+     * {{notes}}{{#allParams}}
+     * @param {{paramName}} {{description}}{{/allParams}}{{#returnType}}
+     * @return {{{returnType}}}{{/returnType}}
+     */
+    public CompletionStage<{{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}Void{{/returnType}}> {{operationId}}({{#allParams}}{{{dataType}}} {{paramName}}{{#hasMore}}, {{/hasMore}}{{/allParams}}) {
+        return {{operationId}}({{#allParams}}{{paramName}}, {{/allParams}}null);
+    }
+
+    public CompletionStage<{{#returnType}}{{{returnType}}}{{/returnType}}{{^returnType}}Void{{/returnType}}> {{operationId}}({{#allParams}}{{{dataType}}} {{paramName}}, {{/allParams}}Map<String, List<String>> responseHeaders) {
+
+        logger.trace("executing '{{operationId}}' with parameters: {{#allParams}}{{paramName}}=" + {{paramName}} + "{{#hasMore}}, {{/hasMore}}{{/allParams}}");
+
+        Object postBody = {{#bodyParam}}{{paramName}}{{/bodyParam}}{{^bodyParam}}null{{/bodyParam}};
+
+        {{#allParams}}{{#required}}// verify the required parameter '{{paramName}}' is set
+        if ({{paramName}} == null) {
+            throw new ApiException(400, "Missing the required parameter '{{paramName}}' when calling {{operationId}}");
+        }
+
+        {{/required}}{{/allParams}}// create path and map variables
+        String path = "{{{path}}}".replaceAll("\\{format\\}","json"){{#pathParams}}
+            .replaceAll("\\{" + "{{baseName}}" + "\\}", apiClient.escapeString({{{paramName}}}.toString())){{/pathParams}};
+
+        // query params
+        List<Pair> queryParams = new ArrayList<>();
+        Map<String, String> headerParams = new HashMap<>();
+        Map<String, Object> formParams = new HashMap<>();
+        {{#queryParams}}queryParams.addAll(apiClient.parameterToPairs("{{#collectionFormat}}{{{collectionFormat}}}{{/collectionFormat}}", "{{baseName}}", {{paramName}}));
+        {{/queryParams}}{{#headerParams}}if ({{paramName}} != null) {
+            headerParams.put("{{baseName}}", apiClient.parameterToString({{paramName}}));
+        }
+        {{/headerParams}}{{#formParams}}if ({{paramName}} != null) {
+            formParams.put("{{baseName}}", {{paramName}});
+        }
+        {{/formParams}}
+        // content type
+        String[] contentTypes = { {{#consumes}}"{{mediaType}}"{{#hasMore}}, {{/hasMore}}{{/consumes}} };
+        String contentType = apiClient.selectHeaderContentType(contentTypes);
+
+        {{#returnType}}TypeReference<{{{returnType}}}> returnType = new TypeReference<{{{returnType}}}>() {};
+        {{/returnType}}return apiClient.invokeApi(path, "{{httpMethod}}", queryParams, postBody, headerParams, formParams, contentType, {{#returnType}}returnType{{/returnType}}{{^returnType}}null{{/returnType}}, responseHeaders);
+    }
+    {{/operation}}
+}
+{{/operations}}

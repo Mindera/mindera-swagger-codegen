@@ -1,0 +1,386 @@
+package {{invokerPackage}};
+
+import {{invokerPackage}}.auth.Authentication;
+import {{invokerPackage}}.auth.CookieAuth;
+import {{invokerPackage}}.auth.ApiKeyAuth;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.google.common.collect.ImmutableList;
+import play.Configuration;
+import play.Logger;
+import play.libs.ws.WSClient;
+import play.libs.ws.WSRequest;
+import play.libs.ws.WSResponse;
+import play.mvc.Http;
+import play.libs.concurrent.HttpExecutionContext;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.CompletionStage;
+
+{{>generatedAnnotation}}
+@Singleton
+public class ApiClient {
+
+    private Map<String, String> defaultHeaderMap = new HashMap<>();
+    private String basePath = "{{basePathWithoutHost}}";
+    private ObjectMapper objectMapper;
+    private List<Authentication> authentications;
+    private DateFormat dateFormat;
+    private String host;
+    private int port;
+    private String protocol;
+    private int requestTimeout;
+    private WSClient ws;
+    private HttpExecutionContext ec;
+
+    @Inject
+    public ApiClient(WSClient ws, Configuration configuration, HttpExecutionContext ec) {
+
+        this.ws = ws;
+        this.ec = ec;
+        this.host = configuration.getString("{{titleDashFormat}}.client.host");
+        this.port = configuration.getInt("{{titleDashFormat}}.client.port", 8080);
+        this.protocol = configuration.getString("{{titleDashFormat}}.client.protocol", "http");
+        this.requestTimeout = configuration.getInt("{{titleDashFormat}}.client.timeout.request", configuration.getInt("ws.timeout.request", 0));
+        this.dateFormat = ApiClient.buildDefaultDateFormat();
+        this.objectMapper = new ObjectMapper();
+        this.objectMapper.findAndRegisterModules();
+        this.objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        this.objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        this.objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        this.objectMapper.enable(SerializationFeature.WRITE_ENUMS_USING_TO_STRING);
+        this.objectMapper.enable(DeserializationFeature.READ_ENUMS_USING_TO_STRING);
+        this.objectMapper.setDateFormat(dateFormat);
+
+        this.authentications = ImmutableList.of(
+                new ApiKeyAuth("header", "M-App-Key"),
+                new CookieAuth("M-SSO")).asList();
+
+        String apiKey = configuration.getString("xms-api.client.apiKey");
+        if (apiKey != null) {
+            setApiKey(apiKey);
+        }
+
+        // Set default User-Agent.
+        setUserAgent("Java-Play2-Swagger");
+    }
+
+    public static DateFormat buildDefaultDateFormat() {
+        // Use RFC3339 format for date and datetime.
+        // See http://xml2rfc.ietf.org/public/rfc/html/rfc3339.html#anchor14
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+        // Use UTC as the default time zone.
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return dateFormat;
+    }
+
+    public ObjectMapper getObjectMapper() {
+        return objectMapper;
+    }
+
+    public String getBasePath() {
+        return basePath;
+    }
+
+    public ApiClient setBasePath(String basePath) {
+        this.basePath = basePath;
+        return this;
+    }
+
+    /**
+     * Helper method to set API key value for the first API key authentication.
+     */
+    public void setApiKey(String apiKey) {
+        for (Authentication auth : authentications) {
+            if (auth instanceof ApiKeyAuth) {
+                ((ApiKeyAuth) auth).setApiKey(apiKey);
+                return;
+            }
+        }
+        throw new RuntimeException("No API key authentication configured!");
+    }
+
+    /**
+     * Set the User-Agent header's value (by adding to the default header map).
+     */
+    public ApiClient setUserAgent(String userAgent) {
+        addDefaultHeader("User-Agent", userAgent);
+        return this;
+    }
+
+    /**
+     * Add a default header.
+     *
+     * @param key   The header's key
+     * @param value The header's value
+     */
+    public ApiClient addDefaultHeader(String key, String value) {
+        defaultHeaderMap.put(key, value);
+        return this;
+    }
+
+    /**
+     * Get the date format used to parse/format date parameters.
+     */
+    public DateFormat getDateFormat() {
+        return dateFormat;
+    }
+
+    /**
+     * Set the date format used to parse/format date parameters.
+     */
+    public void setDateFormat(DateFormat dateFormat) {
+        this.dateFormat = dateFormat;
+        // Also set the date format for model (de)serialization with Date properties.
+        this.objectMapper.setDateFormat((DateFormat) dateFormat.clone());
+    }
+
+    /**
+     * Parse the given string into Date object.
+     */
+    public Date parseDate(String str) {
+        try {
+            return dateFormat.parse(str);
+        } catch (java.text.ParseException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Format the given Date object into string.
+     */
+    public String formatDate(Date date) {
+        return dateFormat.format(date);
+    }
+
+    /**
+     * Format the given parameter object into string.
+     */
+    public String parameterToString(Object param) {
+        if (param == null) {
+            return "";
+        } else if (param instanceof Date) {
+            return formatDate((Date) param);
+        } else if (param instanceof Collection) {
+            StringBuilder b = new StringBuilder();
+            for (Object o : (Collection<?>) param) {
+                if (b.length() > 0) {
+                    b.append(",");
+                }
+                b.append(String.valueOf(o));
+            }
+            return b.toString();
+        } else {
+            return String.valueOf(param);
+        }
+    }
+
+    /*
+      Format to {@code Pair} objects.
+    */
+    public List<Pair> parameterToPairs(String collectionFormat, String name, Object value) {
+        List<Pair> params = new ArrayList<>();
+
+        // preconditions
+        if (name == null || name.isEmpty() || value == null) return params;
+
+        Collection<?> valueCollection;
+        if (value instanceof Collection<?>) {
+            valueCollection = (Collection<?>) value;
+        } else {
+            params.add(new Pair(name, parameterToString(value)));
+            return params;
+        }
+
+        if (valueCollection.isEmpty()) {
+            return params;
+        }
+
+        // get the collection format
+        collectionFormat = (collectionFormat == null || collectionFormat.isEmpty() ? "csv" : collectionFormat); // default: csv
+
+        // create the params based on the collection format
+        if (collectionFormat.equals("multi")) {
+            for (Object item : valueCollection) {
+                params.add(new Pair(name, parameterToString(item)));
+            }
+
+            return params;
+        }
+
+        String delimiter = ",";
+        switch (collectionFormat) {
+            case "csv":
+                delimiter = ",";
+                break;
+            case "ssv":
+                delimiter = " ";
+                break;
+            case "tsv":
+                delimiter = "\t";
+                break;
+            case "pipes":
+                delimiter = "|";
+                break;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (Object item : valueCollection) {
+            sb.append(delimiter);
+            sb.append(parameterToString(item));
+        }
+
+        params.add(new Pair(name, sb.substring(1)));
+
+        return params;
+    }
+
+    /**
+     * Escape the given string to be used as URL query value.
+     */
+    public String escapeString(String str) {
+        try {
+            return URLEncoder.encode(str, "utf8").replaceAll("\\+", "%20");
+        } catch (UnsupportedEncodingException e) {
+            return str;
+        }
+    }
+
+    private String buildUrl(String path) {
+        return new StringBuilder()
+                .append(protocol)
+                .append("://")
+                .append(host)
+                .append(":")
+                .append(port)
+                .append(basePath)
+                .append(path)
+                .toString();
+    }
+
+    public <T> CompletionStage<T> invokeApi(String path, String method, List<Pair> queryParams, Object body, Map<String, String> headerParams, Map<String, Object> formParams, String contentType, TypeReference<T> returnType, Map<String, List<String>> responseHeaders) {
+        CompletionStage<WSResponse> responsePromise = getResponse(path, method, queryParams, body, headerParams, formParams, contentType);
+        return responsePromise.thenApplyAsync(response -> {
+            int statusCode = response.getStatus();
+            if (responseHeaders != null) {
+                responseHeaders.putAll(response.getAllHeaders());
+            }
+            if (statusCode == Http.Status.NO_CONTENT) {
+                return null;
+            } else if (statusCode >= Http.Status.OK && statusCode < Http.Status.MULTIPLE_CHOICES) {
+                try {
+                    return (returnType == null) ? null : getObjectMapper().readValue(response.getBodyAsStream(), returnType);
+                } catch (IOException e) {
+                    Logger.debug("unable to deserialize object: {}\ncause: {}", response.getBody(), e.getMessage());
+                    throw new ApiException(500, "Invalid response from server");
+                }
+            } else {
+                String message = "error";
+                JsonNode errorBody = null;
+                try {
+                    String jsonBody = response.getBody();
+                    if (jsonBody != null && jsonBody.length() > 0) {
+                        errorBody = getObjectMapper().readTree(jsonBody);
+                        JsonNode messageNode = errorBody.findPath("message");
+                        message = messageNode != null ? messageNode.textValue() : message;
+                    }
+                } catch (Exception e) {
+                    Logger.warn("Unable to deserialize error", e);
+                }
+                throw new ApiException(response.getStatus(), message, response.getAllHeaders(), errorBody);
+            }
+        }, ec.current());
+    }
+
+    private <T> CompletionStage<WSResponse> getResponse(String path, String method, List<Pair> queryParams, Object body, Map<String, String> headerParams, Map<String, Object> formParams, String contentType) {
+
+        String url = buildUrl(path);
+        WSRequest request = ws.url(url);
+
+        updateParamsForAuth(queryParams, headerParams);
+        for (Pair queryParam : queryParams) {
+            request.setQueryParameter(queryParam.getName(), queryParam.getValue());
+        }
+
+        for (Entry<String, String> entry : headerParams.entrySet()) {
+            request.setHeader(entry.getKey(), entry.getValue());
+        }
+
+        for (Entry<String, String> entry : defaultHeaderMap.entrySet()) {
+            if (!headerParams.containsKey(entry.getKey())) {
+                request.setHeader(entry.getKey(), entry.getValue());
+            }
+        }
+
+        if (requestTimeout > 0) {
+            request.setRequestTimeout(requestTimeout);
+        }
+
+        if (contentType.startsWith(Http.MimeTypes.FORM) && formParams != null) {
+            request.setBody(getXWWWFormUrlencodedParams(formParams));
+        } else {
+            JsonNode json = this.getObjectMapper().valueToTree(body);
+            request.setBody(json);
+        }
+
+        return request.setContentType(contentType).setMethod(method).execute();
+    }
+
+    private void updateParamsForAuth(List<Pair> queryParams, Map<String, String> headerParams) {
+        for (Authentication auth : this.authentications) {
+            auth.applyToParams(queryParams, headerParams);
+        }
+    }
+
+    private String getXWWWFormUrlencodedParams(Map<String, Object> formParams) {
+        StringBuilder formParamBuilder = new StringBuilder();
+
+        for (Entry<String, Object> param : formParams.entrySet()) {
+            String valueStr = parameterToString(param.getValue());
+            try {
+                formParamBuilder.append(URLEncoder.encode(param.getKey(), "utf8"))
+                        .append("=")
+                        .append(URLEncoder.encode(valueStr, "utf8"));
+                formParamBuilder.append("&");
+            } catch (UnsupportedEncodingException e) {
+                // move on to next
+            }
+        }
+
+        String encodedFormParams = formParamBuilder.toString();
+        if (encodedFormParams.endsWith("&")) {
+            encodedFormParams = encodedFormParams.substring(0, encodedFormParams.length() - 1);
+        }
+
+        return encodedFormParams;
+    }
+
+    public String selectHeaderContentType(String[] contentTypes) {
+        if (contentTypes.length == 0) {
+            return Http.MimeTypes.JSON;
+        }
+        for (String contentType : contentTypes) {
+            if (isJsonMime(contentType)) {
+                return contentType;
+            }
+        }
+        return contentTypes[0];
+    }
+
+    public boolean isJsonMime(String mime) {
+        return mime != null && mime.matches("(?i)application\\/json(;.*)?");
+    }
+}

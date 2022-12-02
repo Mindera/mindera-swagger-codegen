@@ -1,0 +1,37 @@
+package {{invokerPackage}}.auth;
+
+import {{invokerPackage}}.Pair;
+import play.mvc.Http;
+
+import java.util.Map;
+import java.util.List;
+import static com.google.common.base.Strings.*;
+
+{{>generatedAnnotation}}
+public class CookieAuth implements Authentication {
+
+    private String cookieKey;
+
+    public CookieAuth(String cookieKey) {
+        this.cookieKey = cookieKey;
+    }
+
+    @Override
+    public void applyToParams(List<Pair> queryParams, Map<String, String> headerParams) {
+        if (isNullOrEmpty(cookieKey)) {
+            return;
+        }
+        Http.Request request = Http.Context.current().request();
+        if (request == null) {
+            return;
+        }
+        Http.Cookie cookie = request.cookie(cookieKey);
+        if (cookie == null) {
+            return;
+        }
+        String cookieValue = cookie.value();
+        if (!isNullOrEmpty(cookieValue)) {
+            headerParams.put(Http.HeaderNames.COOKIE, cookieKey + "=" + cookieValue);
+        }
+    }
+}
